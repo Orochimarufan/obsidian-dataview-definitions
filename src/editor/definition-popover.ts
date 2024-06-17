@@ -4,8 +4,6 @@ import { logDebug, logError } from "src/util/log";
 
 const DEF_POPOVER_ID = "definition-popover";
 
-let definitionPopover: DefinitionPopover;
-
 interface Coordinates {
 	left: number;
 	right: number;
@@ -202,16 +200,4 @@ export class DefinitionPopover extends Component {
 	getPopoverElement() {
 		return document.getElementById("definition-popover");
 	}
-}
-
-// Mount definition popover
-export function initDefinitionPopover(plugin: Plugin) {
-	if (definitionPopover) {
-		definitionPopover.cleanUp();
-	}
-	definitionPopover = new DefinitionPopover(plugin);
-}
-
-export function getDefinitionPopover() {
-	return definitionPopover;
 }

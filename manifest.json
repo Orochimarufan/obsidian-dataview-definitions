@@ -1,6 +1,6 @@
 {
-	"id": "note-definitions",
-	"name": "Note Definitions",
+	"id": "dataview-definitions",
+	"name": "DataView Definitions",
 	"version": "0.12.0",
 	"minAppVersion": "1.5.12",
 	"description": "Personal dictionary for your notes",

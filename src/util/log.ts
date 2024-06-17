@@ -18,7 +18,7 @@ const levelMap = {
 
 // Log only if current log level is >= specified log level
 function logWithLevel(msg: string, logLevel: LogLevel) {
-	if (window.NoteDefinition.LOG_LEVEL >= logLevel) {
+	if (window.DataViewDefinitions.LOG_LEVEL >= logLevel) {
 		console.log(`${levelMap[logLevel]}: ${msg}`);
 	}
 }

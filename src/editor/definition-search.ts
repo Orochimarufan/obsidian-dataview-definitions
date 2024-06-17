@@ -1,4 +1,4 @@
-import { getDefFileManager } from "src/core/def-file-manager";
+import { Index } from "src/core/dataview.js";
 
 // Information of phrase that can be used to add decorations within the editor
 export interface PhraseInfo {
@@ -10,16 +10,19 @@ export interface PhraseInfo {
 export class LineScanner {
 	private cnLangRegex = /\p{Script=Han}/u;
 	private terminatingCharRegex = /[!@#$%^&*()+={}[\]:;"'<>,.?/|\\\r\n\s （）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～｟｠｢｣､\u3000、〃〈〉《》「」『』【】\u3014\u3015〖〗〘〙〚〛〜〝〞〟—\u2018\u2019\u201b“”„‟…‧\ufe4f﹑﹔·。]/u;
+	private index: Index;
 
+	constructor() {
+		this.index = window.DataViewDefinitions.index;
+	}
 
 	scanLine(line: string, offset?: number): PhraseInfo[] {
-		const defManager = getDefFileManager();
 		const phraseInfos: PhraseInfo[] = [];
 		line = line.toLowerCase();
 
 		for (let i = 0; i < line.length; i++) {
 			if (this.isValidStart(line, i)) {
-				const match = defManager.tree.match(line.slice(i))?.proper;
+				const match = this.index.tree.match(line.slice(i))?.proper;
 				if (match) {
 					const phrase = match.key;
 					if (this.isValidEnd(line, i+phrase.length-1)) {

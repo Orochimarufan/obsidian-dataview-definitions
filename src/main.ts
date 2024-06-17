@@ -1,31 +1,37 @@
-import { Menu, Plugin, TFolder } from 'obsidian';
-import { injectGlobals } from './globals';
-import { logDebug } from './util/log';
+import { Menu, Plugin } from 'obsidian';
+import { LogLevel, logDebug } from './util/log';
 import { definitionMarker } from './editor/marker';
 import { Extension } from '@codemirror/state';
-import { DefManager, initDefFileManager } from './core/def-file-manager';
 import { Definition } from './core/model';
-import { getDefinitionPopover, initDefinitionPopover } from './editor/definition-popover';
+import { DefinitionPopover } from './editor/definition-popover';
 import { postProcessor } from './editor/md-postprocessor';
-import { DEFAULT_SETTINGS, getSettings, SettingsTab } from './settings';
+import { DEFAULT_SETTINGS, Settings, SettingsTab } from './settings';
 import { getMarkedWordUnderCursor } from './util/editor';
-import { FileExplorerDecoration, initFileExplorerDecoration } from './ui/file-explorer';
+import { FileExplorerDecoration } from './ui/file-explorer';
+import { Index } from './core/dataview';
 
-export default class NoteDefinition extends Plugin {
+declare global {
+	interface Window { DataViewDefinitions: DataViewDefinitions; }
+}
+
+export default class DataViewDefinitions extends Plugin {
+	LOG_LEVEL: LogLevel = LogLevel.Debug;
+	index: Index;
+	settings: Settings;
 	activeEditorExtensions: Extension[] = [];
-	defManager: DefManager;
+	popover: DefinitionPopover;
 	fileExplorerDeco: FileExplorerDecoration;
 
 	async onload() {
-		// Settings are injected into global object
-		const settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData())
-		injectGlobals(settings);
+		window.DataViewDefinitions = this;
 
-		logDebug("Load note definition plugin");
+		logDebug("Loading DV definitions plugin");
+	
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.index = new Index(this.app);
 
-		initDefinitionPopover(this);
-		this.defManager = initDefFileManager(this.app);
-		this.fileExplorerDeco = initFileExplorerDecoration(this.app);
+		this.popover = new DefinitionPopover(this);
+		this.fileExplorerDeco = new FileExplorerDecoration(this.app);
 
 		this.registerCommands();
 		this.registerEvents();
@@ -34,11 +40,11 @@ export default class NoteDefinition extends Plugin {
 		this.addSettingTab(new SettingsTab(this.app, this));
 		this.registerMarkdownPostProcessor(postProcessor);
 
-		this.fileExplorerDeco.run();
+		this.refreshDefinitions();
 	}
 
 	async saveSettings() {
-		await this.saveData(window.NoteDefinition.settings);
+		await this.saveData(window.DataViewDefinitions.settings);
 		this.fileExplorerDeco.run();
 		this.refreshDefinitions();
 	}
@@ -50,9 +56,9 @@ export default class NoteDefinition extends Plugin {
 			editorCallback: (editor) => {
 				const curWord = getMarkedWordUnderCursor(editor);
 				if (!curWord) return;
-				const def = window.NoteDefinition.definitions.global.get(curWord);
+				const def = this.index.get(curWord);
 				if (!def) return;
-				getDefinitionPopover().openAtCursor(def);
+				this.popover.openAtCursor(def);
 			}
 		});
 
@@ -62,17 +68,21 @@ export default class NoteDefinition extends Plugin {
 			editorCallback: (editor) => {
 				const currWord = getMarkedWordUnderCursor(editor);
 				if (!currWord) return;
-				const def = this.defManager.get(currWord);
+				const def = this.index.get(currWord);
 				if (!def) return;
-				this.app.workspace.openLinkText(def.linkText, '');
+				this.app.workspace.openLinkText(def.path, '');
 			}
 		})
 	}
 
 	registerEvents() {
+		this.registerEvent(this.app.metadataCache.on("dataview:metadata-change" as any, (type: any, file: any, oldPath?: any) => {
+			// TODO: more granular
+			this.refreshDefinitions();
+		}));
+
 		this.registerEvent(this.app.workspace.on("active-leaf-change", async (leaf) => {
 			if (!leaf) return;
-			this.refreshDefinitions();
 			this.registerEditorExts();
 		}));
 
@@ -80,25 +90,25 @@ export default class NoteDefinition extends Plugin {
 		this.registerEvent(this.app.workspace.on("editor-menu", (menu, editor) => {
 			const curWord = getMarkedWordUnderCursor(editor);
 			if (!curWord) return;
-			const def = this.defManager.get(curWord);
+			const def = this.index.get(curWord);
 			if (!def) return;
 			this.registerMenuItems(menu, def);
 		}));
 
 		// Add file menu options
-		this.registerEvent(this.app.workspace.on("file-menu", (menu, file, source) => {
+		/*this.registerEvent(this.app.workspace.on("file-menu", (menu, file, source) => {
 			if (file instanceof TFolder) {
 				menu.addItem(item => {
 					item.setTitle("Set definition folder")
 						.setIcon("book-a")
 						.onClick(() => {
 							const settings = getSettings();
-							settings.defFolder = file.path;
+							settings.definitionSelector = file.path;
 							this.saveSettings();
 						});
 				});
 			}
-		}));
+		}));*/
 	}
 
 	registerMenuItems(menu: Menu, def: Definition) {
@@ -106,18 +116,19 @@ export default class NoteDefinition extends Plugin {
 			item.setTitle("Go to definition")
 				.setIcon("arrow-left-from-line")
 				.onClick(() => {
-					this.app.workspace.openLinkText(def.linkText, '');
+					this.app.workspace.openLinkText(def.path, '');
 				});
 		})
 	}
 
 	refreshDefinitions() {
-		this.defManager.loadDefinitions();
+		this.index.build(this.settings.definitionSelector);
+		this.fileExplorerDeco.refresh(this.settings.definitionSelector);
 	}
 
 	registerEditorExts() {
 		const currFile = this.app.workspace.getActiveFile();
-		if (currFile && this.defManager.isDefFile(currFile)) {
+		if (currFile && this.index.dataview.pagePaths(this.settings.definitionSelector).includes(currFile.path)) {
 			// TODO: Editor extension for definition file
 			this.setActiveEditorExtensions([]);
 		} else {
@@ -132,7 +143,22 @@ export default class NoteDefinition extends Plugin {
 	}
 
 	onunload() {
-		logDebug("Unload note definition plugin");
-		getDefinitionPopover().cleanUp();
+		logDebug("Unloading DataView definitions plugin");
+		this.popover.cleanUp();
+	}
+
+	triggerPopover(el: HTMLElement) {
+		const word = el.getAttr('def');
+
+		if (!word) return;
+
+		const def = this.index.get(word);
+		if (!def) return;
+
+		const openPopover = setTimeout(() => {
+			this.popover.openAtCoords(def, el.getBoundingClientRect());
+		}, 200);
+
+		el.onmouseleave = () => clearTimeout(openPopover);
 	}
 }

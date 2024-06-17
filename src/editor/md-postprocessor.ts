@@ -8,7 +8,7 @@ interface Marks {
 }
 
 export const postProcessor: MarkdownPostProcessor = (element, context) => {
-	const shouldRunPostProcessor = window.NoteDefinition.settings.enableInReadingView;
+	const shouldRunPostProcessor = window.DataViewDefinitions.settings.enableInReadingView;
 	if (!shouldRunPostProcessor) {
 		return;
 	}

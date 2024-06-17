@@ -1,48 +1,33 @@
-import { App, Modal, Notice, PluginSettingTab, Setting, setTooltip } from "obsidian";
-import NoteDefinition from "./main";
+import { App, PluginSettingTab, Setting } from "obsidian";
+import DataViewDefinitions from "./main";
 
 export enum PopoverEventSettings {
 	Hover = "hover",
 	Click = "click"
 }
 
-export interface DividerSettings {
-	dash: boolean;
-	underscore: boolean;
-}
-
-export interface DefFileParseConfig {
-	divider: DividerSettings;
-}
-
 export interface Settings {
 	enableInReadingView: boolean;
-	defFolder: string;
+	definitionSelector: string;
 	popoverEvent: PopoverEventSettings;
-	defFileParseConfig: DefFileParseConfig;
 }
 
-export const DEFAULT_DEF_FOLDER = "definitions"
-
-export const DEFAULT_SETTINGS: Partial<Settings> = {
+export const DEFAULT_SETTINGS: Settings = {
 	enableInReadingView: true,
+	definitionSelector: '"definitions" or #definition',
 	popoverEvent: PopoverEventSettings.Hover,
-	defFileParseConfig: {
-		divider: {
-			dash: true,
-			underscore: false
-		}
-	}
 }
 
 export class SettingsTab extends PluginSettingTab {
-	plugin: NoteDefinition;
-	settings: Settings;
+	plugin: DataViewDefinitions;
 
-	constructor(app: App, plugin: NoteDefinition) {
+	constructor(app: App, plugin: DataViewDefinitions) {
 		super(app, plugin);
 		this.plugin = plugin;
-		this.settings = window.NoteDefinition.settings;
+	}
+
+	get settings(): Settings {
+		return this.plugin.settings;
 	}
 
 	display(): void {
@@ -61,16 +46,14 @@ export class SettingsTab extends PluginSettingTab {
 				});
 			});
 		new Setting(containerEl)
-			.setName("Definitions folder")
-			.setDesc("Files within this folder will be parsed to register definitions")
+			.setName("Definitions DataView Selector")
+			.setDesc("Files matching this selector will be registered as definitions")
 			.addText((component) => {
-				component.setValue(this.settings.defFolder);
-				component.setPlaceholder(DEFAULT_DEF_FOLDER);
-				component.setDisabled(true)
-				setTooltip(component.inputEl, 
-					"In the file explorer, right-click on the desired folder and click on 'Set definition folder' to change the definition folder",
-				{
-					delay: 100
+				component.setValue(this.settings.definitionSelector);
+				component.setPlaceholder(DEFAULT_SETTINGS.definitionSelector);
+				component.onChange(async (val) => {
+					this.settings.definitionSelector = val;
+					await this.plugin.saveSettings();
 				});
 			});
 		new Setting(containerEl)
@@ -87,52 +70,5 @@ export class SettingsTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				});
 			});
-		new Setting(containerEl)
-			.setName("Definition file format settings")
-			.setDesc("Customise parsing rules for definition files")
-			.addExtraButton(component => {
-				component.onClick(() => {
-					const modal = new Modal(this.app);
-					modal.setTitle("Definition file format settings")
-					new Setting(modal.contentEl)
-						.setName("Divider")
-						.setHeading()
-					new Setting(modal.contentEl)
-						.setName("Dash")
-						.setDesc("Use triple dash (---) as divider")
-						.addToggle((component) => {
-							component.setValue(this.settings.defFileParseConfig.divider.dash);
-							component.onChange(async value => {
-								if (!value && !this.settings.defFileParseConfig.divider.underscore) {
-									new Notice("At least one divider must be chosen", 2000);
-									component.setValue(this.settings.defFileParseConfig.divider.dash);
-									return;
-								}
-								this.settings.defFileParseConfig.divider.dash = value;
-								await this.plugin.saveSettings();
-							});
-						});
-					new Setting(modal.contentEl)
-						.setName("Underscore")
-						.setDesc("Use triple underscore (___) as divider")
-						.addToggle((component) => {
-							component.setValue(this.settings.defFileParseConfig.divider.underscore);
-							component.onChange(async value => {
-								if (!value && !this.settings.defFileParseConfig.divider.dash) {
-									new Notice("At least one divider must be chosen", 2000);
-									component.setValue(this.settings.defFileParseConfig.divider.underscore);
-									return;
-								}
-								this.settings.defFileParseConfig.divider.underscore = value;
-								await this.plugin.saveSettings();
-							});
-						});
-					modal.open();
-				})
-			})
 	}
-}
-
-export function getSettings(): Settings {
-	return window.NoteDefinition.settings;
 }
