@@ -1,6 +1,7 @@
 import { MarkdownPostProcessor } from "obsidian";
-import { DEF_DECORATION_CLS, getDecorationAttrs } from "./common";
-import { LineScanner, PhraseInfo } from "./definition-search";
+
+import { LineScanner, PhraseInfo } from "./definition-search.js";
+import { createInlineElement } from "./decoration.js";
 
 interface Marks {
 	el: HTMLElement;
@@ -8,6 +9,7 @@ interface Marks {
 }
 
 export const postProcessor: MarkdownPostProcessor = (element, context) => {
+	// TODO: globals
 	const shouldRunPostProcessor = window.DataViewDefinitions.settings.enableInReadingView;
 	if (!shouldRunPostProcessor) {
 		return;
@@ -37,28 +39,13 @@ const rebuildHTML = (parent: Node) => {
 				continue;
 			}
 
-			// Decorations need to be sorted by 'from' ascending, then 'to' descending
-			// This allows us to prefer longer words over shorter ones
-			phraseInfos.sort((a, b) => b.to - a.to);
-			phraseInfos.sort((a, b) => a.from - b.from);
-
 			let currCursor = 0;
 			const newContainer = parent.createSpan();
 			const addedMarks: Marks[] = [];
 
 			phraseInfos.forEach(phraseInfo => {
-				if (phraseInfo.from < currCursor) {
-					// Subset or intersect phrases are ignored
-					return;
-				}
-
 				newContainer.appendText(currText.slice(currCursor, phraseInfo.from));
-				const attributes = getDecorationAttrs(phraseInfo.phrase);
-				const span = newContainer.createSpan({
-					cls: DEF_DECORATION_CLS,
-					attr: attributes,
-					text: currText.slice(phraseInfo.from, phraseInfo.to),
-				});
+				const span = createInlineElement(phraseInfo);
 				newContainer.appendChild(span);
 				addedMarks.push({
 					el: span,

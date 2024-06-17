@@ -1,6 +1,6 @@
 import { Menu, Plugin } from 'obsidian';
 import { LogLevel, logDebug } from './util/log';
-import { definitionMarker } from './editor/marker';
+import { definitionMarker } from './editor/decoration';
 import { Extension } from '@codemirror/state';
 import { Definition } from './core/model';
 import { DefinitionPopover } from './editor/definition-popover';
@@ -145,20 +145,5 @@ export default class DataViewDefinitions extends Plugin {
 	onunload() {
 		logDebug("Unloading DataView definitions plugin");
 		this.popover.cleanUp();
-	}
-
-	triggerPopover(el: HTMLElement) {
-		const word = el.getAttr('def');
-
-		if (!word) return;
-
-		const def = this.index.get(word);
-		if (!def) return;
-
-		const openPopover = setTimeout(() => {
-			this.popover.openAtCoords(def, el.getBoundingClientRect());
-		}, 200);
-
-		el.onmouseleave = () => clearTimeout(openPopover);
 	}
 }

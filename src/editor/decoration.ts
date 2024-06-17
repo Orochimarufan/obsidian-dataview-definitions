@@ -7,22 +7,58 @@ import {
   PluginValue,
   ViewPlugin,
   ViewUpdate,
+  WidgetType,
 } from "@codemirror/view";
-import { logDebug } from "src/util/log";
-import { DEF_DECORATION_CLS, getDecorationAttrs } from "./common";
-import { LineScanner } from "./definition-search";
 
-// Information of phrase that can be used to add decorations within the editor
-interface PhraseInfo {
-	from: number;
-	to: number;
-	phrase: string;
-}
+import { logDebug } from "src/util/log.js";
+import { LineScanner, PhraseInfo } from "./definition-search.js";
+import { Definition } from "src/core/model.js";
+import { PopoverEventSettings } from "src/settings.js";
 
+export const DEF_DECORATION_CLS = "def-decoration";
+
+// TODO: remove global
 let markedPhrases: PhraseInfo[] = [];
 
 export function getMarkedPhrases(): PhraseInfo[] {
 	return markedPhrases;
+}
+
+export function createInlineElement({text, def}: {text: string, def: Definition}): HTMLElement {
+	// TODO: move to context to avoid globals
+	const el = document.createElement('span');
+	el.className = DEF_DECORATION_CLS;
+	if (def.ruby !== undefined) {
+		const ruby = el.createEl('ruby');
+		ruby.appendText(text);
+		ruby.createEl('rt', {text: def.ruby});
+	} else {
+		el.appendText(text);
+	}
+	const settings = window.DataViewDefinitions.settings;
+	el.addEventListener((settings.popoverEvent === PopoverEventSettings.Hover) ? 'mouseenter' : 'click', (e) => {
+		const openPopover = setTimeout(() => {
+			window.DataViewDefinitions.popover.openAtCoords(def, el.getBoundingClientRect());
+		}, 200);
+
+		el.onmouseleave = () => clearTimeout(openPopover);
+	});
+	return el;
+}
+
+class DefinitionWidget extends WidgetType {
+	text: string;
+	def: Definition;
+
+	constructor(text: string, def: Definition) {
+		super();
+		this.text = text;
+		this.def = def;
+	}
+
+	toDOM(view: EditorView): HTMLElement {
+		return createInlineElement(this);
+	}
 }
 
 // View plugin to mark definitions
@@ -55,14 +91,10 @@ export class DefinitionMarker implements PluginValue {
 		}
 
 		phraseInfos.forEach(wordPos => {
-			const attributes = getDecorationAttrs(wordPos.phrase);
-			builder.add(wordPos.from, wordPos.to, Decoration.mark({
-				class: DEF_DECORATION_CLS,
-				attributes: attributes,
-			}));
+			builder.add(wordPos.from, wordPos.to, Decoration.widget({widget: new DefinitionWidget(wordPos.text, wordPos.def)}))
 		});
-
 		markedPhrases = phraseInfos;
+
 		return builder.finish();
 	}
 
@@ -79,22 +111,7 @@ export class DefinitionMarker implements PluginValue {
 			internalOffset += line.length + 1;
 		});
 
-		// Decorations need to be sorted by 'from' ascending, then 'to' descending
-		// This allows us to prefer longer words over shorter ones
-		phraseInfos.sort((a, b) => b.to - a.to);
-		phraseInfos.sort((a, b) => a.from - b.from);
-		return this.removeSubsetsAndIntersects(phraseInfos)
-	}
-
-	private removeSubsetsAndIntersects(phraseInfos: PhraseInfo[]): PhraseInfo[] {
-		let cursor = 0;
-		return phraseInfos.filter(phraseInfo => {
-			if (phraseInfo.from >= cursor) {
-				cursor = phraseInfo.to;
-				return true;
-			}
-			return false;
-		});
+		return phraseInfos;
 	}
 }
 

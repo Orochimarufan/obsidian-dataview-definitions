@@ -17,6 +17,10 @@ export class Definition {
         return this.page.aliases ?? [];
     }
 
+	get ruby(): string|undefined {
+		return this.page.ruby ?? this.page.furigana ?? this.page.kana;
+	}
+
     get definition(): string {
         return this.page.definition ?? this.page.translation ?? "";
     }

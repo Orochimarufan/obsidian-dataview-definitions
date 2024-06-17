@@ -1,5 +1,5 @@
 import { Editor } from "obsidian";
-import { getMarkedPhrases } from "src/editor/marker";
+import { getMarkedPhrases } from "src/editor/decoration";
 
 export function getMarkedWordUnderCursor(editor: Editor) {
 	const currWord = getWordByOffset(editor.posToOffset(editor.getCursor()));
@@ -21,7 +21,7 @@ function getWordByOffset(offset: number): string {
 
 		const currPhrase = markedPhrases[mid];
 		if (offset >= currPhrase.from && offset <= currPhrase.to) {
-			return currPhrase.phrase;
+			return currPhrase.text;
 		}
 		if (offset < currPhrase.from) {
 			end = mid - 1;

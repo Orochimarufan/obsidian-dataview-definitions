@@ -1,10 +1,12 @@
 import { Index } from "src/core/dataview.js";
+import { Definition } from "src/core/model.js";
 
 // Information of phrase that can be used to add decorations within the editor
 export interface PhraseInfo {
 	from: number;
 	to: number;
-	phrase: string;
+	text: string;
+	def: Definition;
 }
 
 export class LineScanner {
@@ -18,19 +20,21 @@ export class LineScanner {
 
 	scanLine(line: string, offset?: number): PhraseInfo[] {
 		const phraseInfos: PhraseInfo[] = [];
-		line = line.toLowerCase();
+		const llc = line.toLowerCase();
 
 		for (let i = 0; i < line.length; i++) {
 			if (this.isValidStart(line, i)) {
-				const match = this.index.tree.match(line.slice(i))?.proper;
-				if (match) {
-					const phrase = match.key;
-					if (this.isValidEnd(line, i+phrase.length-1)) {
+				// TODO: better case folding
+				const [len, def] = this.index.find(llc.slice(i));
+				if (def !== undefined) {
+					if (this.isValidEnd(line, i+len-1)) {
 						phraseInfos.push({
-							phrase: phrase,
+							text: line.slice(i, i+len),
+							def,
 							from: (offset ?? 0) + i,
-							to: (offset ?? 0) + i + phrase.length,
+							to: (offset ?? 0) + i + len,
 						});
+						i += len;
 					}
 				}
 			}
