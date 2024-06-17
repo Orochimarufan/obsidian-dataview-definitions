@@ -49,7 +49,7 @@ export class DefinitionMarker implements PluginValue {
 		const builder = new RangeSetBuilder<Decoration>();
 		const phraseInfos: PhraseInfo[] = [];
 
-		for (let { from, to } of view.visibleRanges) {
+		for (const { from, to } of view.visibleRanges) {
 			const text = view.state.sliceDoc(from, to);
 			phraseInfos.push(...this.scanText(text, from));
 		}
@@ -68,7 +68,7 @@ export class DefinitionMarker implements PluginValue {
 
 	// Scan text and return phrases and their positions that require decoration
 	private scanText(text: string, offset: number): PhraseInfo[] {
-		let phraseInfos: PhraseInfo[] = [];
+		const phraseInfos: PhraseInfo[] = [];
 		const lines = text.split('\n');
 		let internalOffset = offset;
 		const lineScanner = new LineScanner();

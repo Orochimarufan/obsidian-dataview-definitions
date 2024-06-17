@@ -17,9 +17,9 @@ function getWordByOffset(offset: number): string {
 
 	// Binary search to get marked word at provided position
 	while (start <= end) {
-		let mid = Math.floor((start + end) / 2);
+		const mid = Math.floor((start + end) / 2);
 
-		let currPhrase = markedPhrases[mid];
+		const currPhrase = markedPhrases[mid];
 		if (offset >= currPhrase.from && offset <= currPhrase.to) {
 			return currPhrase.phrase;
 		}

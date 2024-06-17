@@ -35,7 +35,6 @@ export function injectGlobals(settings: Settings) {
 			if (!def) return;
 
 			const defPopover = getDefinitionPopover();
-			let isOpen = false;
 
 			if (el.onmouseenter) {
 				const openPopover = setTimeout(() => {
@@ -43,9 +42,7 @@ export function injectGlobals(settings: Settings) {
 				}, 200);
 
 				el.onmouseleave = () => {
-					if (!isOpen) {
-						clearTimeout(openPopover);
-					}
+					clearTimeout(openPopover);
 				}
 				return;
 			}

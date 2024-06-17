@@ -9,7 +9,7 @@ export interface PhraseInfo {
 
 export class LineScanner {
 	private cnLangRegex = /\p{Script=Han}/u;
-	private terminatingCharRegex = /[!@#$%^&*()\+={}[\]:;"'<>,.?\/|\\\r\n （）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～｟｠｢｣､　、〃〈〉《》「」『』【】〔〕〖〗〘〙〚〛〜〝〞〟—‘’‛“”„‟…‧﹏﹑﹔·。]/;
+	private terminatingCharRegex = /[!@#$%^&*()+={}[\]:;"'<>,.?/|\\\r\n\s （）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～｟｠｢｣､\u3000、〃〈〉《》「」『』【】\u3014\u3015〖〗〘〙〚〛〜〝〞〟—\u2018\u2019\u201b“”„‟…‧\ufe4f﹑﹔·。]/u;
 
 
 	scanLine(line: string, offset?: number): PhraseInfo[] {

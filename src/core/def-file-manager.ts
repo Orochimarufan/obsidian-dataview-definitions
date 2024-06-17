@@ -55,12 +55,12 @@ export class DefManager {
 
 	private async parseFolder(folder: TFolder): Promise<Definition[]> {
 		const definitions: Definition[] = [];
-		for (let f of folder.children) {
+		for (const f of folder.children) {
 			if (f instanceof TFolder) {
-				let defs = await this.parseFolder(f);
+				const defs = await this.parseFolder(f);
 				definitions.push(...defs);
 			} else if (f instanceof TFile) {
-				let defs = await this.parseFile(f);
+				const defs = await this.parseFile(f);
 				definitions.push(...defs);
 			}
 		}
@@ -69,7 +69,7 @@ export class DefManager {
 
 	private async parseFile(file: TFile): Promise<Definition[]> {
 		this.globalDefFiles.push(file);
-		let parser = new FileParser(this.app, file);
+		const parser = new FileParser(this.app, file);
 		return parser.parseFile();
 	}
 

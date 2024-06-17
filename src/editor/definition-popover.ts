@@ -106,9 +106,8 @@ export class DefinitionPopover extends Component {
 		const contentEl = el.createEl("div");
 		contentEl.setAttr("ctx", "def-popup");
 
-		const currComponent = this;
 		MarkdownRenderer.render(this.app, def.definition, contentEl, 
-			this.plugin.app.workspace.getActiveFile()?.path ?? '', currComponent);
+			this.plugin.app.workspace.getActiveFile()?.path ?? '', this);
 
 		return el;
 	}
