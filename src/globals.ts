@@ -1,5 +1,6 @@
 import { getDefFileManager } from "./core/def-file-manager";
 import { Definition } from "./core/model";
+import { RadixTree } from "./core/radix-tree";
 import { getDefinitionPopover } from "./editor/definition-popover";
 import { Settings } from "./settings";
 import { LogLevel } from "./util/log";
@@ -13,7 +14,7 @@ declare global {
 export interface GlobalVars {
 	LOG_LEVEL: LogLevel;
 	definitions: {
-		global: Map<string, Definition>;
+		global: RadixTree<Definition>;
 	};
 	triggerDefPreview: (el: HTMLElement) => void;
 	settings: Settings;
@@ -24,7 +25,7 @@ export function injectGlobals(settings: Settings) {
 	window.NoteDefinition = {
 		LOG_LEVEL: window.NoteDefinition?.LOG_LEVEL || LogLevel.Error,
 		definitions: {
-			global: new Map<string, Definition>(),
+			global: new RadixTree<Definition>(),
 		},
 		triggerDefPreview: (el: HTMLElement) => {
 			const word = el.getAttr('def');

@@ -1,5 +1,4 @@
 import { getDefFileManager } from "src/core/def-file-manager";
-import { PTreeTraverser } from "./prefix-tree";
 
 // Information of phrase that can be used to add decorations within the editor
 export interface PhraseInfo {
@@ -14,32 +13,24 @@ export class LineScanner {
 
 
 	scanLine(line: string, offset?: number): PhraseInfo[] {
-		let traversers: PTreeTraverser[] = [];
 		const defManager = getDefFileManager();
 		const phraseInfos: PhraseInfo[] = [];
+		line = line.toLowerCase();
 
 		for (let i = 0; i < line.length; i++) {
-			const c = line.charAt(i).toLowerCase();
 			if (this.isValidStart(line, i)) {
-				traversers.push(new PTreeTraverser(defManager.prefixTree));
-			}
-
-			traversers.forEach(traverser => {
-				traverser.gotoNext(c);
-				if (traverser.isWordEnd() && this.isValidEnd(line, i)) {
-					const phrase = traverser.getWord();
-					phraseInfos.push({
-						phrase: phrase,
-						from: (offset ?? 0) + i - phrase.length + 1,
-						to: (offset ?? 0) + i + 1,
-					});
+				const match = defManager.tree.match(line.slice(i))?.proper;
+				if (match) {
+					const phrase = match.key;
+					if (this.isValidEnd(line, i+phrase.length-1)) {
+						phraseInfos.push({
+							phrase: phrase,
+							from: (offset ?? 0) + i,
+							to: (offset ?? 0) + i + phrase.length,
+						});
+					}
 				}
-			});
-
-			// Collect garbage traversers that hit a dead-end
-			traversers = traversers.filter(traverser => {
-				return !!traverser.currPtr;
-			});
+			}
 		}
 		return phraseInfos;
 	}

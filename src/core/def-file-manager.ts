@@ -1,5 +1,5 @@
 import { App, TFile, TFolder } from "obsidian";
-import { PTreeNode } from "src/editor/prefix-tree";
+import { RadixTree } from "./radix-tree";
 import { DEFAULT_DEF_FOLDER } from "src/settings";
 import { normaliseWord } from "src/util/editor";
 import { logWarn } from "src/util/log";
@@ -10,16 +10,13 @@ let defFileManager: DefManager;
 
 export class DefManager {
 	app: App;
-	globalDefs: Map<string, Definition>;
 	globalDefFiles: TFile[];
-	prefixTree: PTreeNode;
+	tree: RadixTree<Definition>;
 
 	constructor(app: App) {
 		this.app = app;
-		this.globalDefs = new Map<string, Definition>;
 		this.globalDefFiles = [];
-		window.NoteDefinition.definitions.global = this.globalDefs;
-		this.prefixTree = new PTreeNode();
+		window.NoteDefinition.definitions.global = this.tree = new RadixTree();
 	}
 
 	isDefFile(file: TFile): boolean {
@@ -27,8 +24,7 @@ export class DefManager {
 	}
 
 	reset() {
-		this.prefixTree = new PTreeNode();
-		this.globalDefs.clear();
+		this.tree.clear();
 		this.globalDefFiles = [];
 	}
 
@@ -38,11 +34,11 @@ export class DefManager {
 	}
 
 	get(key: string) {
-		return this.globalDefs.get(normaliseWord(key));
+		return this.tree.get(normaliseWord(key));
 	}
 
 	has(key: string) {
-		return this.globalDefs.has(normaliseWord(key));
+		return this.tree.has(normaliseWord(key));
 	}
 
 	private async loadGlobals() {
@@ -54,16 +50,7 @@ export class DefManager {
 
 		// Recursively load files within the global definition folder
 		const definitions = await this.parseFolder(globalFolder);
-		definitions.forEach(def => {
-			this.globalDefs.set(def.key, def);
-		});
-
-		// Build prefix tree
-		const root = new PTreeNode();
-		this.globalDefs.forEach((_, key) => {
-			root.add(key, 0);
-		});
-		this.prefixTree = root;
+		definitions.forEach(def => this.tree.set(def.key, def));
 	}
 
 	private async parseFolder(folder: TFolder): Promise<Definition[]> {
