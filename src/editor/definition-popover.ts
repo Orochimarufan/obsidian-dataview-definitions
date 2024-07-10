@@ -160,11 +160,14 @@ export class DefinitionPopover extends Component {
 			positionStyle.maxWidth = 'max(calc(100vw / 3))';
 		}
 
+		// Need to offset title bar height as it is not part of the workspace container
+		const titleBarHeightCSS = `100vh - ${workspaceStyle.height}`
+
 		if (this.shouldOpenUpwards(coords.top, workspaceStyle)) {
-			positionStyle.bottom = `${parseInt(workspaceStyle.height) - coords.top}px`;
+			positionStyle.bottom = `calc(${parseInt(workspaceStyle.height) - coords.top}px + (${titleBarHeightCSS}))`;
 			positionStyle.maxHeight = `${coords.top}px`;
 		} else {
-			positionStyle.top = `${coords.bottom}px`;
+			positionStyle.top = `calc(${coords.bottom}px - (${titleBarHeightCSS}))`;
 			positionStyle.maxHeight = `calc(100vh - ${coords.bottom}px)`;
 		}
 
@@ -182,6 +185,8 @@ export class DefinitionPopover extends Component {
 		this.unregisterClosePopoverListeners();
 	}
 
+	// This uses internal non-exposed codemirror API to get cursor coordinates
+	// Cursor coordinates seem to be relative to viewport
 	private getCursorCoords(): Coordinates {
 		const editor = this.app.workspace.activeEditor?.editor;
 		// @ts-ignore
