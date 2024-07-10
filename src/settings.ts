@@ -6,16 +6,28 @@ export enum PopoverEventSettings {
 	Click = "click"
 }
 
+export interface PopoverConfig {
+	enableCustomSize: boolean;
+	maxWidth: number;
+	maxHeight: number;
+}
+
 export interface Settings {
 	enableInReadingView: boolean;
 	definitionSelector: string;
 	popoverEvent: PopoverEventSettings;
+	popoverConfig: PopoverConfig;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
 	enableInReadingView: true,
 	definitionSelector: '"definitions" or #definition',
 	popoverEvent: PopoverEventSettings.Hover,
+	popoverConfig: {
+		enableCustomSize: false,
+		maxWidth: 150,
+		maxHeight: 150
+	}
 }
 
 export class SettingsTab extends PluginSettingTab {
@@ -56,6 +68,11 @@ export class SettingsTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				});
 			});
+
+		new Setting(containerEl)
+			.setHeading()
+			.setName("Popover Settings");
+
 		new Setting(containerEl)
 			.setName("Definition popover display event")
 			.setDesc("Choose the trigger event for displaying the definition popover")
@@ -70,5 +87,46 @@ export class SettingsTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				});
 			});
+
+			new Setting(containerEl)
+			.setName("Custom popover size")
+			.setDesc("Customise the maximum popover size. This is not recommended as it prevents dynamic sizing of the popover based on your viewport.")
+			.addToggle(component => {
+				component.setValue(this.settings.popoverConfig.enableCustomSize);
+				component.onChange(async value => {
+					this.settings.popoverConfig.enableCustomSize = value;
+					await this.plugin.saveSettings();
+					this.display();
+				});
+			});
+
+		if (this.settings.popoverConfig.enableCustomSize) {
+			new Setting(containerEl)
+				.setName("Popover width (px)")
+				.setDesc("Maximum width of the definition popover")
+				.addSlider(component => {
+					component.setLimits(150, window.innerWidth, 1);
+					component.setValue(this.settings.popoverConfig.maxWidth);
+					component.setDynamicTooltip()
+					component.onChange(async val => {
+						this.settings.popoverConfig.maxWidth = val;
+						await this.plugin.saveSettings();
+					});
+				});
+
+			new Setting(containerEl)
+				.setName("Popover height (px)")
+				.setDesc("Maximum height of the definition popover")
+				.addSlider(component => {
+					component.setLimits(150, window.innerHeight, 1);
+					component.setValue(this.settings.popoverConfig.maxHeight);
+					component.setDynamicTooltip();
+					component.onChange(async val => {
+						this.settings.popoverConfig.maxHeight = val;
+						await this.plugin.saveSettings();
+					});
+				});
+		}
+
 	}
 }
