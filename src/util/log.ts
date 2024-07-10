@@ -1,42 +1,14 @@
 // Rudimentary logger implementation
+// Use console binds to preserve source locations/backtraces
 
-export enum LogLevel {
-	Silent,
-	Error,
-	Warn,
-	Info,
-	Debug,
+type LogFunction = (msg: string) => void;
+
+function makeFn(level: keyof Console): LogFunction {
+	return console[level].bind(console, "DVDefs %s: %s", level.toUpperCase());
 }
 
-const levelMap = {
-	0: "SILENT", // Should not be used
-	1: "ERROR",
-	2: "WARN",
-	3: "INFO",
-	4: "DEBUG"
-}
-
-// Log only if current log level is >= specified log level
-function logWithLevel(msg: string, logLevel: LogLevel) {
-	if (window.DataViewDefinitions.LOG_LEVEL >= logLevel) {
-		console.log(`${levelMap[logLevel]}: ${msg}`);
-	}
-}
-
-// Convenience methods for each level
-
-export function logDebug(msg: string) {
-	logWithLevel(msg, LogLevel.Debug);
-}
-
-export function logInfo(msg: string) {
-	logWithLevel(msg, LogLevel.Info);
-}
-
-export function logWarn(msg: string) {
-	logWithLevel(msg, LogLevel.Warn);
-}
-
-export function logError(msg: string) {
-	logWithLevel(msg, LogLevel.Error);
-}
+export const logError = makeFn("error");
+export const logWarn = makeFn("warn");
+export const logInfo = makeFn("info");
+export const logDebug = makeFn("debug");
+export const log = makeFn("log");

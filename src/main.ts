@@ -1,5 +1,5 @@
 import { Menu, Plugin } from 'obsidian';
-import { LogLevel, logDebug } from './util/log';
+import { logDebug } from './util/log';
 import { definitionMarker } from './editor/decoration';
 import { Extension } from '@codemirror/state';
 import { Definition } from './core/model';
@@ -15,7 +15,6 @@ declare global {
 }
 
 export default class DataViewDefinitions extends Plugin {
-	LOG_LEVEL: LogLevel = LogLevel.Debug;
 	index: Index;
 	settings: Settings;
 	activeEditorExtensions: Extension[] = [];
